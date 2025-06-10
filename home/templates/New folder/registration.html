@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}Register | GGI Tools{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow p-4">
+        <h2 class="text-center mb-4">Create Account</h2>
+
+        <form method="post">
+          {% csrf_token %}
+          {{ form.as_p }}
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Register</button>
+          </div>
+        </form>
+
+        {% if form.errors %}
+        <div class="alert alert-danger mt-3">
+          <ul class="mb-0">
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

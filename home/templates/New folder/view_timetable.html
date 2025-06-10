@@ -1,0 +1,87 @@
+
+{% extends "layout.html" %}
+{% load period_extras %}
+{% block title %}View Timetable{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <strong>📅 View Timetable</strong>
+    </div>
+    <div class="card-body">
+      <form method="post" class="row g-3 mb-4">
+        {% csrf_token %}
+        <div class="col-md-4">
+          <label class="form-label">Branch</label>
+          <select name="branch" class="form-select" required>
+            <option value="">-- Select Branch --</option>
+            {% for b in branches %}
+              <option value="{{ b }}" {% if b == selected_branch %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Semester</label>
+          <select name="semester" class="form-select" required>
+            <option value="">-- Select Semester --</option>
+            {% for s in semesters %}
+              <option value="{{ s }}" {% if s|stringformat:"s" == selected_semester %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Section</label>
+          <select name="section" class="form-select" required>
+            <option value="">-- Select Section --</option>
+            {% for sec in sections %}
+              <option value="{{ sec }}" {% if sec == selected_section %}selected{% endif %}>{{ sec }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 text-end">
+          <button type="submit" class="btn btn-success px-4">View Timetable</button>
+        </div>
+      </form>
+
+      {% if entries %}
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Day</th>
+              {% for i in "12345678" %}
+              <th>Period {{ i }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr>
+                <td><strong>{{ entry.day }}</strong></td>
+                {% for i in "12345678" %}
+                  {% with entry.periods.all|get_slot:i as p %}
+                    <td>
+                      {% if p %}
+                        <div><strong>{{ p.subject.name }}</strong></div>
+                        <div><small>{{ p.teacher.name }}</small></div>
+                        <div class="text-muted small">Room: {{ p.classroom.room_no }}</div>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% elif request.method == 'POST' %}
+        <div class="alert alert-warning text-center mt-3">
+          No timetable found for the selected criteria.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

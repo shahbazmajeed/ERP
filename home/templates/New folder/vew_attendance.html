@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block title %}View Attendance{% endblock %}
+
+{% block content %}
+<h2>Attendance Records</h2>
+
+<form method="get" class="mb-3">
+  <label for="date">Select Date:</label>
+  <input type="date" name="date" id="date" value="{{ request.GET.date }}">
+  <button class="btn btn-secondary" type="submit">Filter</button>
+</form>
+
+{% if records %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Student</th>
+      <th>Date</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in records %}
+    <tr>
+      <td>{{ record.student.name }}</td>
+      <td>{{ record.date }}</td>
+      <td>{{ record.present|yesno:"Present,Absent" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No attendance records found for this date.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard | Head of Department Internal Tools{% endblock %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="row">
+
+    <!-- Sidebar -->
+    <aside class="col-12 col-md-3 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <strong>Tools & Actions</strong>
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item"><a href="/add-students" class="text-decoration-none">Add Students</a></li>
+          <li class="list-group-item"><a href="/upload-timetable" class="text-decoration-none">Upload Timetable</a></li>
+          <li class="list-group-item"><a href="/view-timetable" class="text-decoration-none">View Timetable</a></li>
+          <li class="list-group-item"><a href="/pdf" class="text-decoration-none">PDF to Excel</a></li>
+          <li class="list-group-item"><a href="/attendance" class="text-decoration-none">Face Attendance</a></li>
+          <li class="list-group-item"><a href="#" class="text-decoration-none">Fee Analysis</a></li>
+          <li class="list-group-item"><a href="#" class="text-decoration-none">Student Feedback</a></li>
+          <li class="list-group-item"><a href="/manage-data" class="text-decoration-none text-danger fw-bold">🛠 Manage Database</a></li>
+          <li class="list-group-item"><a href="{% url 'mark_attendance' %}" class="btn btn-info">Mark Attendance</a></li>
+          <li class="list-group-item"><a href="{% url 'view_attendance' %}" class="btn btn-primary">View Attendance</a></li>
+        </ul>
+
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <section class="col-12 col-md-9">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <strong>Student Filter & Selection</strong>
+        </div>
+        <div class="card-body">
+
+          <!-- Filter Form -->
+          <form method="post" class="row g-3 mb-3">
+            {% csrf_token %}
+            <div class="col-md-4">
+              <label class="form-label">Branch</label>
+              <select class="form-select" name="branch" required>
+                {% if branches|length == 1 %}
+                  {% for b in branches %}
+                    <option value="{{ b }}" selected>{{ b }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">-- Select Branch --</option>
+                  {% for b in branches %}
+                    <option value="{{ b }}" {% if b == selected_branch %}selected{% endif %}>{{ b }}</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Semester</label>
+              <select class="form-select" name="semester" required>
+                {% if semesters|length == 1 %}
+                  {% for s in semesters %}
+                    <option value="{{ s }}" selected>{{ s }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">-- Select Semester --</option>
+                  {% for s in semesters %}
+                    <option value="{{ s }}" {% if s|stringformat:"s" == selected_semester %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Section</label>
+              <select class="form-select" name="section" required>
+                {% if sections|length == 1 %}
+                  {% for sec in sections %}
+                    <option value="{{ sec }}" selected>{{ sec }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">-- Select Section --</option>
+                  {% for sec in sections %}
+                    <option value="{{ sec }}" {% if sec == selected_section %}selected{% endif %}>{{ sec }}</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="col-12 text-end">
+              <button type="submit" class="btn btn-primary">Filter Students</button>
+            </div>
+          </form>
+
+          <!-- Results -->
+          {% if students %}
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Branch</th>
+                    <th>Semester</th>
+                    <th>Section</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                    <tr>
+                      <td>{{ student.roll_no }}</td>
+                      <td>{{ student.name }}</td>
+                      <td>{{ student.branch }}</td>
+                      <td>{{ student.semester }}</td>
+                      <td>{{ student.section }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% elif request.method == 'POST' %}
+            <div class="alert alert-warning mt-3">No students found for selected criteria.</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+{% endblock %}

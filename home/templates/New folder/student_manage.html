@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}Student Manager | GGI Tools{% endblock %}
+{% block content %}
+
+<div class="container mt-5">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <strong>Upload Students via Excel</strong>
+    </div>
+    <div class="card-body">
+      {% if message %}
+        <div class="alert alert-success">{{ message }}</div>
+      {% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button name="upload" class="btn btn-success">Upload</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-4 shadow-sm">
+    <div class="card-header bg-secondary text-white">
+      <strong>Filter Students</strong>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <input name="branch" type="text" class="form-control" placeholder="Branch (e.g. BCA)">
+          </div>
+          <div class="col-md-4">
+            <input name="semester" type="number" class="form-control" placeholder="Semester">
+          </div>
+          <div class="col-md-4">
+            <input name="section" type="text" class="form-control" placeholder="Section (e.g. A)">
+          </div>
+        </div>
+        <div class="text-end mt-3">
+          <button name="filter" class="btn btn-primary">Filter Students</button>
+        </div>
+      </form>
+
+      {% if students %}
+        <h5 class="mt-4">Filtered Students:</h5>
+        <table class="table table-bordered mt-2">
+          <thead>
+            <tr>
+              <th>Roll No</th>
+              <th>Name</th>
+              <th>Branch</th>
+              <th>Semester</th>
+              <th>Section</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr>
+                <td>{{ student.roll_no }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.branch }}</td>
+                <td>{{ student.semester }}</td>
+                <td>{{ student.section }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

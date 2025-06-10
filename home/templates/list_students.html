@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h3 class="mb-4">Filter Students</h3>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <label class="form-label">Course</label>
+        <select name="course" class="form-control">
+            <option value="">-- Any --</option>
+            {% for course in courses %}
+                <option value="{{ course }}" {% if filter_course == course %}selected{% endif %}>{{ course }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Year</label>
+        <select name="year" class="form-control">
+            <option value="">-- Any --</option>
+            {% for year in years %}
+                <option value="{{ year }}" {% if filter_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Section</label>
+        <select name="section" class="form-control">
+            <option value="">-- Any --</option>
+            {% for section in sections %}
+                <option value="{{ section }}" {% if filter_section == section %}selected{% endif %}>{{ section }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Gender</label>
+        <select name="gender" class="form-control">
+            <option value="">-- Any --</option>
+            <option value="male" {% if filter_gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if filter_gender == 'female' %}selected{% endif %}>Female</option>
+            <option value="other" {% if filter_gender == 'other' %}selected{% endif %}>Other</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 align-self-end">
+        <button type="submit" class="btn btn-success w-100">Apply Filter</button>
+    </div>
+    <div class="col-md-2 align-self-end">
+        <a href="{% url 'list_students' %}" class="btn btn-secondary w-100">Clear Filter</a>
+    </div>
+</form>
+
+<hr>
+
+{% if students %}
+    <h3 class="mb-3">Student List ({{ students|length }})</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Roll No</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Course</th>
+                    <th>Year</th>
+                    <th>Section</th>
+                    <th>Gender</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.roll_number }}</td>
+                    <td>{{ student.first_name }}</td>
+                    <td>{{ student.last_name }}</td>
+                    <td>{{ student.course }}</td>
+                    <td>{{ student.year }}</td>
+                    <td>{{ student.section }}</td>
+                    <td>{{ student.gender }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p class="mt-4 text-muted">No students found for this filter.</p>
+{% endif %}
+
+{% endblock %}

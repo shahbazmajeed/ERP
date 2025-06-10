@@ -15,3 +15,5 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = ('username', 'email', 'role', 'password1', 'password2')
 
+class UploadStudentFileForm(forms.Form):
+    file = forms.FileField()

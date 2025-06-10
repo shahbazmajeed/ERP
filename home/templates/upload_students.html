@@ -1,0 +1,15 @@
+<!-- upload_students.html -->
+{% extends "layout.html" %}
+{% block title %}Upload Students{% endblock %}
+
+{% block content %}
+<h2>Upload Students from Excel</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+<p><a href="{% url 'list_students' %}">View All Students</a></p>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>Timetable Viewer</h2>
+
+<h4>Filter</h4>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <label>Course</label>
+        <select name="course" class="form-control">
+            <option value="">-- Any --</option>
+            {% for course in courses %}
+                <option value="{{ course }}" {% if filter_course == course %}selected{% endif %}>{{ course }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label>Year</label>
+        <select name="year" class="form-control">
+            <option value="">-- Any --</option>
+            {% for year in years %}
+                <option value="{{ year }}" {% if filter_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label>Section</label>
+        <select name="section" class="form-control">
+            <option value="">-- Any --</option>
+            {% for section in sections %}
+                <option value="{{ section }}" {% if filter_section == section %}selected{% endif %}>{{ section }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2 align-self-end">
+        <button type="submit" class="btn btn-success w-100">Apply Filter</button>
+    </div>
+    <div class="col-md-2 align-self-end">
+        <a href="{% url 'list_timetable' %}" class="btn btn-secondary w-100">Clear Filter</a>
+    </div>
+</form>
+
+{% if timetable %}
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Period</th>
+                <th>Subject</th>
+                <th>Teacher</th>
+                <th>Classroom</th>
+                <th>Course</th>
+                <th>Year</th>
+                <th>Section</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in timetable %}
+                <tr>
+                    <td>{{ entry.day }}</td>
+                    <td>{{ entry.period_number }}</td>
+                    <td>{{ entry.subject }}</td>
+                    <td>{{ entry.teacher_name }}</td>
+                    <td>{{ entry.classroom }}</td>
+                    <td>{{ entry.course }}</td>
+                    <td>{{ entry.year }}</td>
+                    <td>{{ entry.section }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No timetable entries found for selected filters.</p>
+{% endif %}
+
+{% endblock %}

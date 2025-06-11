@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block content %}
+
+<h3 class="mb-3">
+    Attendance Calendar - {{ course }} {{ year }} {{ section }} ({{ selected_month }}/{{ selected_year }})
+</h3>
+
+<form method="get" class="mb-3 d-flex gap-2">
+    <select name="month" class="form-select" style="width:auto;">
+        {% for m in months %}
+            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                {{ m|date:"F" }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <select name="year" class="form-select" style="width:auto;">
+        {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary">Go</button>
+</form>
+
+<table class="table table-bordered text-center">
+    <thead class="table-dark">
+        <tr>
+            <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th>
+            <th>Fri</th><th>Sat</th><th>Sun</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for week in month_days %}
+            <tr>
+                {% for day in week %}
+                    {% if day.month == selected_month %}
+                        {% if day < today %}
+                            {% if day in attendance_dates %}
+                                <td class="bg-success text-white">
+                            {% else %}
+                                <td class="bg-danger text-white">
+                            {% endif %}
+                        {% elif day == today %}
+                            <td class="bg-warning text-dark">
+                        {% else %}
+                            <td class="bg-primary text-white">
+                        {% endif %}
+                            <a href="{% url 'take_attendance' course year section subject_id day|date:'Y-m-d' %}">
+                                {{ day.day }}
+                            </a>
+                        </td>
+                    {% else %}
+                        <td class="bg-light text-muted">{{ day.day }}</td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'filter_attendance' %}" class="btn btn-secondary mt-3">⬅ Back</a>
+
+{% endblock %}

@@ -17,6 +17,20 @@ urlpatterns = [
     path('students/', views.list_students, name='list_students'),
     path('upload_timetable/', views.upload_timetable, name='upload_timetable'),
     path('list_timetable/', views.list_timetable, name='list_timetable'),
+    # urls.py
+
+   
+
+    path('attendance/take/<str:course>/<int:year>/<str:section>/<int:subject_id>/<str:date>/', views.take_attendance, name='take_attendance'),
+
+    # must come before the one below
+    path('attendance/<str:course>/<int:year>/<str:section>/<int:subject_id>/', views.attendance_calendar, name='attendance_calendar'),
+
+    path('attendance/', views.select_attendance_options, name='filter_attendance'),  # this also works
+    
+    
 
 ]
+from django.urls import reverse
+
 

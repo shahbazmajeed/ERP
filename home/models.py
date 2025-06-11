@@ -25,29 +25,67 @@ class CustomUser(AbstractUser):
         help_text='Specific permissions for this user.',
     )
 
+from django.shortcuts import render, get_object_or_404, redirect
+from datetime import datetime
 class Student(models.Model):
     roll_number = models.CharField(max_length=10, unique=True)
     npf_number = models.CharField(max_length=10, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     gender = models.CharField(max_length=10)
-    date_of_birth = models.DateField()
-    email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15)
-    address = models.TextField()
+    date_of_birth = models.DateField(null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    phone_number = models.CharField(null=True,max_length=15)
+    address = models.TextField(null=True, blank=True)
     course = models.CharField(max_length=100)
-    year = models.IntegerField()
+    year = models.IntegerField(null=True)
     section = models.CharField(max_length=10)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.roll_number})"
 
-# models.py
+def take_attendance(request, course, year, section, subject_id, date):
+    subject = get_object_or_404(Subject, id=subject_id)
+    selected_date = datetime.strptime(date, "%Y-%m-%d").date()
+
+    # Filter students by course, year, section
+    students = Student.objects.filter(course=course, year=year, section=section)
+
+    if request.method == 'POST':
+        present_ids = request.POST.getlist('present')
+        for student in students:
+            status = "Present" if str(student.id) in present_ids else "Absent"
+            Attendance.objects.update_or_create(
+                student=student,
+                subject=subject,
+                date=selected_date,
+                defaults={'status': status}
+            )
+        return redirect('attendance_calendar', course=course, year=year, section=section, subject_id=subject_id)
+
+    return render(request, 'take_attendance.html', {
+        'students': students,
+        'course': course,
+        'year': year,
+        'section': section,
+        'subject': subject,
+        'date': selected_date
+    })
+
+
+class Subject(models.Model):
+    subject_name = models.CharField(max_length=100)
+    subject_code = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.subject_name} ({self.subject_code})"
+
+
 
 class TimeTableEntry(models.Model):
     day = models.CharField(max_length=20)
     period_number = models.IntegerField()
-    subject = models.CharField(max_length=100)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)  # ✅ LINKED
     teacher_name = models.CharField(max_length=100)
     classroom = models.CharField(max_length=100, blank=True)
     course = models.CharField(max_length=50)
@@ -55,4 +93,21 @@ class TimeTableEntry(models.Model):
     section = models.CharField(max_length=10)
 
     def __str__(self):
-        return f"{self.day} - Period {self.period_number} - {self.subject} ({self.course} {self.year}-{self.section})"
+        return f"{self.day} - Period {self.period_number} - {self.subject.name} ({self.course} {self.year}-{self.section})"
+
+
+
+
+
+
+class Attendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    date = models.DateField()
+    status = models.CharField(max_length=10, choices=[("Present", "Present"), ("Absent", "Absent")])
+
+    class Meta:
+        unique_together = ('student', 'subject', 'date')
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} - {self.date} - {self.status}"

@@ -205,6 +205,21 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import TimeTableEntry
 
+import pandas as pd
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import TimeTableEntry, Subject  # Ensure Subject is imported
+import re
+
+def parse_subject(subject_text):
+    """Extract subject_name and subject_code from string like 'Mathematics (MATH101)'"""
+    match = re.match(r'^(.*?)\s*\((.*?)\)$', subject_text.strip())
+    if match:
+        subject_name, subject_code = match.groups()
+        return subject_name.strip(), subject_code.strip()
+    else:
+        return subject_text.strip(), ""
+
 def upload_timetable(request):
     if request.method == 'POST' and request.FILES.get('excel_file'):
         excel_file = request.FILES['excel_file']
@@ -212,31 +227,42 @@ def upload_timetable(request):
         try:
             df = pd.read_excel(excel_file)
 
-            # Clear existing timetable for that course/year/section if needed
+            # Get details for deletion
             course = df['Course'].iloc[0]
             year = df['Year'].iloc[0]
             section = df['Section'].iloc[0]
 
+            # Optional: Clear old entries
             TimeTableEntry.objects.filter(course=course, year=year, section=section).delete()
 
             for index, row in df.iterrows():
                 for period_num in range(1, 7):
-                    subject = row[f'Period {period_num} Subject']
-                    teacher = row[f'Period {period_num} Teacher']
-                    classroom = row[f'Period {period_num} Classroom']
+                    subject_text = row.get(f'Period {period_num} Subject')
+                    teacher = row.get(f'Period {period_num} Teacher', '')
+                    classroom = row.get(f'Period {period_num} Classroom', '')
 
-                    # Skip empty periods (optional)
-                    if subject and pd.notna(subject):
+                    if subject_text and pd.notna(subject_text):
+                        # Parse subject name and code
+                        subject_name, subject_code = parse_subject(subject_text)
+
+                        # Get or create Subject model instance
+                        subject_obj, _ = Subject.objects.get_or_create(
+                            subject_name=subject_name,
+                            subject_code=subject_code
+                        )
+
+                        # Save timetable entry
                         TimeTableEntry.objects.create(
                             day=row['Day'],
                             period_number=period_num,
-                            subject=subject,
+                            subject=subject_obj,
                             teacher_name=teacher if pd.notna(teacher) else '',
                             classroom=classroom if pd.notna(classroom) else '',
                             course=row['Course'],
                             year=row['Year'],
                             section=row['Section']
                         )
+
             messages.success(request, "✅ Timetable uploaded successfully!")
             return redirect('upload_timetable')
 
@@ -244,6 +270,10 @@ def upload_timetable(request):
             messages.error(request, f"❌ Error uploading timetable: {str(e)}")
 
     return render(request, 'upload_timetable.html')
+
+
+
+
 
 from django.db.models import Q
 from .models import TimeTableEntry
@@ -282,3 +312,116 @@ def list_timetable(request):
         'timetable': timetable,
     }
     return render(request, 'list_timetable.html', context)
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Subject, Attendance
+from datetime import date, timedelta, datetime
+import calendar
+
+def select_attendance_options(request):
+    if request.method == 'POST':
+        course = request.POST['course']
+        year = request.POST['year']
+        section = request.POST['section']
+        subject_id = request.POST['subject']
+        return redirect('attendance_calendar', course=course, year=int(year), section=section, subject_id=int(subject_id))
+
+    subjects = Subject.objects.all()
+    return render(request, 'attendance_select.html', {'subjects': subjects})
+
+from datetime import date
+import calendar
+
+def attendance_calendar(request, course, year, section, subject_id):
+    today = date.today()
+    month = int(request.GET.get('month', today.month))
+    year_val = int(request.GET.get('year', today.year))
+
+    subject = Subject.objects.get(id=subject_id)
+    cal = calendar.Calendar()
+    month_days = cal.monthdatescalendar(year_val, month)
+
+    attendance_records = Attendance.objects.filter(
+        student__course=course,
+        student__year=year,
+        student__section=section,
+        subject=subject,
+        date__month=month,
+        date__year=year_val
+    ).values_list('date', flat=True)
+
+    context = {
+        'course': course,
+        'year': year,
+        'section': section,
+        'subject_id': subject_id,
+        'today': today,
+        'month_days': month_days,
+        'selected_month': month,
+        'selected_year': year_val,
+        'attendance_dates': set(attendance_records),
+        'months': range(1, 13),  # January to December
+        'years': range(2023, today.year + 2),  # Example: 2023 to 2026
+    }
+
+    return render(request, 'attendance_calendar.html', context)
+
+from django.shortcuts import render, get_object_or_404, redirect
+from datetime import datetime
+from .models import Student, Subject, Attendance
+
+def take_attendance(request, course, year, section, subject_id, date):
+    subject = get_object_or_404(Subject, id=subject_id)
+    selected_date = datetime.strptime(date, "%Y-%m-%d").date()
+    
+    students = Student.objects.filter(course=course, year=year, section=section)
+
+    if request.method == 'POST':
+        present_ids = request.POST.getlist('present')
+
+        for student in students:
+            status = "Present" if str(student.id) in present_ids else "Absent"
+            Attendance.objects.update_or_create(
+                student=student,
+                subject=subject,
+                date=selected_date,
+                defaults={'status': status}
+            )
+        return redirect('attendance_calendar', course=course, year=year, section=section, subject_id=subject_id)
+
+    return render(request, 'take_attendance.html', {
+        'students': students,
+        'course': course,
+        'year': year,
+        'section': section,
+        'subject': subject,
+        'date': selected_date
+    })
+
+
+
+from django.shortcuts import render, redirect
+from .models import TimeTableEntry, Subject
+
+def select_attendance_options(request):
+    if request.method == 'POST':
+        branch = request.POST['branch']
+        year = int(request.POST['year'])
+        section = request.POST['section']
+        subject_id = int(request.POST['subject_id'])
+
+        return redirect('attendance_calendar', course=branch, year=year, section=section, subject_id=subject_id)
+
+    # ✅ Collect values from the existing timetable & subjects
+    branches = TimeTableEntry.objects.values_list('course', flat=True).distinct()
+    years = TimeTableEntry.objects.values_list('year', flat=True).distinct()
+    sections = TimeTableEntry.objects.values_list('section', flat=True).distinct()
+    subjects = Subject.objects.all()
+
+    return render(request, 'filter_attendance.html', {
+        'branches': branches,
+        'years': years,
+        'sections': sections,
+        'subjects': subjects,
+    })

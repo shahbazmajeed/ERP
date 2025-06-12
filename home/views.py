@@ -366,38 +366,9 @@ def attendance_calendar(request, course, year, section, subject_id):
     }
 
     return render(request, 'attendance_calendar.html', context)
-
 from django.shortcuts import render, get_object_or_404, redirect
 from datetime import datetime
 from .models import Student, Subject, Attendance
-
-def take_attendance(request, course, year, section, subject_id, date):
-    subject = get_object_or_404(Subject, id=subject_id)
-    selected_date = datetime.strptime(date, "%Y-%m-%d").date()
-    
-    students = Student.objects.filter(course=course, year=year, section=section)
-
-    if request.method == 'POST':
-        present_ids = request.POST.getlist('present')
-
-        for student in students:
-            status = "Present" if str(student.id) in present_ids else "Absent"
-            Attendance.objects.update_or_create(
-                student=student,
-                subject=subject,
-                date=selected_date,
-                defaults={'status': status}
-            )
-        return redirect('attendance_calendar', course=course, year=year, section=section, subject_id=subject_id)
-
-    return render(request, 'take_attendance.html', {
-        'students': students,
-        'course': course,
-        'year': year,
-        'section': section,
-        'subject': subject,
-        'date': selected_date
-    })
 
 
 
@@ -425,3 +396,138 @@ def select_attendance_options(request):
         'sections': sections,
         'subjects': subjects,
     })
+
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Student, Subject, Attendance, FaceEmbedding
+from datetime import datetime, date as today_date
+from insightface.app import FaceAnalysis
+import numpy as np
+import cv2
+
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Student, Subject, Attendance
+from datetime import datetime, date as today_date
+import numpy as np
+import cv2
+from insightface.app import FaceAnalysis
+
+# Initialize once
+face_app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
+face_app.prepare(ctx_id=0)
+
+def take_attendance(request, course, year, section, subject_id, date):
+    subject = get_object_or_404(Subject, id=subject_id)
+    selected_date = datetime.strptime(date, "%Y-%m-%d").date()
+    students = Student.objects.filter(course=course, year=year, section=section)
+    is_future = selected_date > today_date.today()
+
+    # Load existing attendance to pre-check
+    existing_attendance = {
+        a.student_id: a.status for a in Attendance.objects.filter(
+            subject=subject, date=selected_date, student__in=students
+        )
+    }
+
+    if request.method == 'POST':
+        present_ids = set(map(int, request.POST.getlist('present')))  # Manual checkbox
+
+        # Handle face image if provided
+        image = request.FILES.get("attendance_image")
+        if image:
+            file_bytes = np.asarray(bytearray(image.read()), dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            faces = face_app.get(img)
+
+            detected_embeddings = [
+                face.embedding / np.linalg.norm(face.embedding) for face in faces
+            ]
+
+            known_embeddings = []
+            student_ids = []
+            for student in students:
+                for emb_obj in student.embeddings.all():
+                    emb = np.frombuffer(emb_obj.embedding, dtype=np.float32)
+                    emb /= np.linalg.norm(emb)
+                    known_embeddings.append(emb)
+                    student_ids.append(student.id)
+
+            threshold = 1.2
+            for emb in detected_embeddings:
+                if not known_embeddings:
+                    continue
+                distances = np.linalg.norm(np.array(known_embeddings) - emb, axis=1)
+                min_idx = np.argmin(distances)
+                if distances[min_idx] < threshold:
+                    present_ids.add(student_ids[min_idx])
+
+        # Save Attendance
+        for student in students:
+            status = "Present" if student.id in present_ids else "Absent"
+            Attendance.objects.update_or_create(
+                student=student,
+                subject=subject,
+                date=selected_date,
+                defaults={'status': status}
+            )
+
+        return render(request, 'take_attendance.html', {
+            'students': students,
+            'course': course,
+            'year': year,
+            'section': section,
+            'subject': subject,
+            'date': selected_date,
+            'is_future': is_future,
+            'attendance_exists': True,
+            'existing_attendance': {s.id: "Present" if s.id in present_ids else "Absent" for s in students},
+            'success': True,
+        })
+
+    return render(request, 'take_attendance.html', {
+        'students': students,
+        'course': course,
+        'year': year,
+        'section': section,
+        'subject': subject,
+        'date': selected_date,
+        'is_future': is_future,
+        'attendance_exists': bool(existing_attendance),
+        'existing_attendance': existing_attendance,
+    })
+
+import numpy as np
+from .models import FaceEmbedding
+
+def get_embedding_for_student(roll_number):
+    try:
+        face_obj = FaceEmbedding.objects.get(student__roll_number=roll_number)
+        embedding = np.array(face_obj.embedding, dtype=np.float32)
+        return embedding
+    except FaceEmbedding.DoesNotExist:
+        return None
+def face_attendance(request):
+    return "aaa"
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from .face_utils import train_face_database  # Ensure this exists and is correct
+
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+
+from .face_utils import train_face_database  # Adjust if placed elsewhere
+
+@csrf_exempt
+def train_face_view(request):
+    context = {}
+    if request.method == "POST":
+        result = train_face_database()
+        context.update({
+            "success": True,
+            "newly_added": result["added"],
+            "total_saved": result["total_images"],
+            "skipped": result["skipped"],
+        })
+    return render(request, 'train_face.html', context)
+

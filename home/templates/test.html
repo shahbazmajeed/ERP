@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Test</title>
+</head>
+<body>
+  <h1>Test Webcam Access</h1>
+  <video id="webcam" autoplay playsinline style="width:300px;"></video>
+  <script>
+    async function startCam() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("❌ getUserMedia not supported");
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById('webcam').srcObject = stream;
+      } catch (err) {
+        alert("❌ Error: " + err.message);
+      }
+    }
+
+    startCam();
+  </script>
+</body>
+</html>

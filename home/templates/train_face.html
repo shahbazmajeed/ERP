@@ -1,0 +1,29 @@
+{% extends "Vlayout.html" %}
+
+{% block Vcontent %}
+<h3 class="mb-3">Train Face Database</h3>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Start Training</button>
+</form>
+
+{% if success %}
+    <div class="alert alert-success mt-3">
+        ✅ Face database updated successfully!
+        <br> 🧠 Total embeddings saved: {{ total_saved }}
+        <br> ➕ New faces added: {{ newly_added }}
+    </div>
+
+    {% if skipped %}
+        <div class="alert alert-warning mt-2">
+            ⚠️ Skipped files (due to read/failure/no face):
+            <ul>
+                {% for file in skipped %}
+                    <li>{{ file }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

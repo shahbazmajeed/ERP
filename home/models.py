@@ -31,8 +31,8 @@ class Student(models.Model):
     roll_number = models.CharField(max_length=10, unique=True)
     npf_number = models.CharField(max_length=10, unique=True)
     first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
+    last_name = models.CharField(null=True, blank=True, max_length=100)
+    gender = models.CharField(null=True, blank=True, max_length=10)
     date_of_birth = models.DateField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     phone_number = models.CharField(null=True,max_length=15)
@@ -111,3 +111,20 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.subject} - {self.date} - {self.status}"
+
+
+from django.db import models
+from .models import Student  # ensure correct import if in same app
+
+from django.db import models
+from .models import Student
+
+class FaceEmbedding(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='embeddings')
+    image_name = models.CharField(max_length=255,null=True, blank=True)  # Optional, to identify source image
+    embedding = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.roll_number} - {self.image_name}"
+

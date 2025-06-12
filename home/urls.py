@@ -28,9 +28,13 @@ urlpatterns = [
 
     path('attendance/', views.select_attendance_options, name='filter_attendance'),  # this also works
     
-    
+    path('face-attendance/<str:course>/<int:year>/<str:section>/<int:subject_id>/<str:date>/', views.face_attendance, name='face_attendance'),
+
+
+    path('train-face-database/', views.train_face_view, name='train_face'),
+
 
 ]
-from django.urls import reverse
+
 
 

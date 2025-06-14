@@ -397,103 +397,121 @@ def select_attendance_options(request):
         'subjects': subjects,
     })
 
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Student, Subject, Attendance, FaceEmbedding
-from datetime import datetime, date as today_date
-from insightface.app import FaceAnalysis
-import numpy as np
-import cv2
 
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Student, Subject, Attendance
-from datetime import datetime, date as today_date
-import numpy as np
-import cv2
-from insightface.app import FaceAnalysis
 
-# Initialize once
-face_app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
-face_app.prepare(ctx_id=0)
 
+
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404, render
+from django.http import JsonResponse
+from .models import Student, Attendance, Subject
+import numpy as np, cv2, json, base64
+from datetime import datetime
+from home.face_utils import face_app
+
+@csrf_exempt
 def take_attendance(request, course, year, section, subject_id, date):
     subject = get_object_or_404(Subject, id=subject_id)
     selected_date = datetime.strptime(date, "%Y-%m-%d").date()
-    students = Student.objects.filter(course=course, year=year, section=section)
-    is_future = selected_date > today_date.today()
+    today = datetime.today().date()
+    is_today, is_future = selected_date == today, selected_date > today
 
-    # Load existing attendance to pre-check
+    students = Student.objects.filter(course=course, year=year, section=section)
     existing_attendance = {
         a.student_id: a.status for a in Attendance.objects.filter(
             subject=subject, date=selected_date, student__in=students
         )
     }
 
-    if request.method == 'POST':
-        present_ids = set(map(int, request.POST.getlist('present')))  # Manual checkbox
+    for student in students:
+        student.attendance_status = existing_attendance.get(student.id, "Absent")
 
-        # Handle face image if provided
-        image = request.FILES.get("attendance_image")
-        if image:
-            file_bytes = np.asarray(bytearray(image.read()), dtype=np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if request.content_type == "application/json":
+        try:
+            data = json.loads(request.body)
+            image_data = data.get("image")
+            if not image_data:
+                return JsonResponse({"error": "Missing image"}, status=400)
+
+            header, encoded = image_data.split(",", 1)
+            img_array = np.frombuffer(base64.b64decode(encoded), dtype=np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             faces = face_app.get(img)
 
-            detected_embeddings = [
-                face.embedding / np.linalg.norm(face.embedding) for face in faces
-            ]
+            detected_embeddings = []
+            for face in faces:
+                emb = face.embedding
+                norm = np.linalg.norm(emb)
+                if norm != 0:
+                    detected_embeddings.append(emb / norm)
 
-            known_embeddings = []
-            student_ids = []
+            known_embeddings, student_ids, roll_map = [], [], {}
             for student in students:
                 for emb_obj in student.embeddings.all():
                     emb = np.frombuffer(emb_obj.embedding, dtype=np.float32)
-                    emb /= np.linalg.norm(emb)
-                    known_embeddings.append(emb)
-                    student_ids.append(student.id)
+                    norm = np.linalg.norm(emb)
+                    if norm != 0:
+                        known_embeddings.append(emb / norm)
+                        student_ids.append(student.id)
+                        roll_map[student.id] = student.roll_number
 
-            threshold = 1.2
+            recognized_ids = set()
+            threshold = 0.8
+            known_embeddings_array = np.array(known_embeddings)
+
             for emb in detected_embeddings:
-                if not known_embeddings:
-                    continue
-                distances = np.linalg.norm(np.array(known_embeddings) - emb, axis=1)
+                distances = np.linalg.norm(known_embeddings_array - emb, axis=1)
                 min_idx = np.argmin(distances)
                 if distances[min_idx] < threshold:
-                    present_ids.add(student_ids[min_idx])
+                    recognized_ids.add(student_ids[min_idx])
 
-        # Save Attendance
+            return JsonResponse({
+                "recognized_rolls": [roll_map[sid] for sid in recognized_ids],
+                "recognized_count": len(recognized_ids)
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    if request.method == "POST":
+        present_ids = set(map(int, request.POST.getlist("present")))
         for student in students:
-            status = "Present" if student.id in present_ids else "Absent"
             Attendance.objects.update_or_create(
                 student=student,
                 subject=subject,
                 date=selected_date,
-                defaults={'status': status}
+                defaults={"status": "Present" if student.id in present_ids else "Absent"}
             )
 
-        return render(request, 'take_attendance.html', {
-            'students': students,
-            'course': course,
-            'year': year,
-            'section': section,
-            'subject': subject,
-            'date': selected_date,
-            'is_future': is_future,
-            'attendance_exists': True,
-            'existing_attendance': {s.id: "Present" if s.id in present_ids else "Absent" for s in students},
-            'success': True,
+        return render(request, "take_attendance.html", {
+            "students": students,
+            "course": course,
+            "year": year,
+            "section": section,
+            "subject": subject,
+            "date": selected_date,
+            "is_future": is_future,
+            "attendance_exists": True,
+            "existing_attendance": {
+                s.id: "Present" if s.id in present_ids else "Absent" for s in students
+            },
+            "success": True,
         })
 
-    return render(request, 'take_attendance.html', {
-        'students': students,
-        'course': course,
-        'year': year,
-        'section': section,
-        'subject': subject,
-        'date': selected_date,
-        'is_future': is_future,
-        'attendance_exists': bool(existing_attendance),
-        'existing_attendance': existing_attendance,
+    return render(request, "take_attendance.html", {
+        "students": students,
+        "course": course,
+        "year": year,
+        "section": section,
+        "subject": subject,
+        "date": selected_date,
+        "is_future": is_future,
+        "today": today,
+        "is_today": is_today,
+        "attendance_exists": bool(existing_attendance),
+        "existing_attendance": existing_attendance,
     })
+
 
 import numpy as np
 from .models import FaceEmbedding

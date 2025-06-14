@@ -16,11 +16,15 @@
 
     {% if is_future %}
       <button type="button" class="btn btn-dark btn-sm" disabled>Face Recognition (Future Date)</button>
-    {% elif attendance_exists %}
-      <button type="button" class="btn btn-secondary btn-sm" disabled>Face Attendance Already Recorded</button>
-    {% else %}
+    {% elif is_today %}
       <button type="button" class="btn btn-outline-primary btn-sm" onclick="startCamera()">🎥 Start Face Recognition</button>
+    {% else %}
+      <button type="button" class="btn btn-secondary btn-sm" disabled>Face Recognition (Only Available for Today)</button>
     {% endif %}
+
+
+
+
   </div>
 
   <!-- Attendance Table -->
@@ -74,19 +78,29 @@
       video.srcObject = stream;
 
       video.onloadedmetadata = () => {
-        setTimeout(() => {
+        // Add capture button dynamically
+        const captureBtn = document.createElement("button");
+        captureBtn.textContent = "📸 Capture Image";
+        captureBtn.className = "btn btn-warning mt-2";
+        captureBtn.type = "button";
+        captureBtn.id = "capture-btn";
+
+        captureBtn.onclick = () => {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           canvas.getContext('2d').drawImage(video, 0, 0);
 
-          // Stop camera
+          // Stop the camera
           stream.getTracks().forEach(track => track.stop());
           video.srcObject = null;
           video.style.display = 'none';
+          captureBtn.remove();
 
-          // Convert to image and send
-          sendImageToServer(canvas.toDataURL('image/jpeg'));
-        }, 2000);  // Wait 2 seconds after video loads
+          const imageData = canvas.toDataURL('image/jpeg');
+          sendImageToServer(imageData);
+        };
+
+        video.parentNode.insertBefore(captureBtn, video.nextSibling);
       };
 
     } catch (err) {

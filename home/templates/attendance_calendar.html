@@ -36,23 +36,25 @@
             <tr>
                 {% for day in week %}
                     {% if day.month == selected_month %}
-                        {% if day < today %}
-                            {% if day in attendance_dates %}
-                                <td class="bg-success text-white">
-                            {% else %}
-                                <td class="bg-danger text-white">
-                            {% endif %}
-                        {% elif day == today %}
-                            <td class="bg-warning text-dark">
-                        {% else %}
-                            <td class="bg-primary text-white">
-                        {% endif %}
-                            <a href="{% url 'take_attendance' course year section subject_id day|date:'Y-m-d' %}">
+                        <td>
+                            <a href="{% url 'take_attendance' course year section subject_id day|date:'Y-m-d' %}" style="text-decoration: none; font-weight: bold;">
                                 {{ day.day }}
                             </a>
+                            <br>
+                            {% if day < today %}
+                                {% if day in attendance_dates %}
+                                    <span class="text-success" style="font-size: 0.9em;">✅ Update Attendance</span>
+                                {% else %}
+                                    <span class="text-danger" style="font-size: 0.9em;">❌ Attendance Missed</span>
+                                {% endif %}
+                            {% elif day == today %}
+                                <span class="text-primary" style="font-size: 0.9em;">📅 Today</span>
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.9em;">Upcoming</span>
+                            {% endif %}
                         </td>
                     {% else %}
-                        <td class="bg-light text-muted">{{ day.day }}</td>
+                        <td class="text-muted">{{ day.day }}</td>
                     {% endif %}
                 {% endfor %}
             </tr>
@@ -60,6 +62,6 @@
     </tbody>
 </table>
 
-<a href="{% url 'filter_attendance' %}" class="btn btn-secondary mt-3">⬅ Back</a>
+<a href="{% url 'filter_attendance' %}" class="btn btn-outline-secondary mt-3">⬅ Back</a>
 
 {% endblock %}

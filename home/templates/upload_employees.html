@@ -1,0 +1,15 @@
+<!-- upload_employees.html -->
+{% extends "Vlayout.html" %}
+{% block title %}Upload Employees{% endblock %}
+
+{% block Vcontent %}
+<h2>Upload Employees from Excel</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+<p><a href="{% url 'list_employees' %}">View All Employees</a></p>
+{% endblock %}

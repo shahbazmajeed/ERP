@@ -38,6 +38,7 @@ class RoleBasedLoginView(LoginView):
         role_redirects = {
             'student': 'student_dashboard',
             'teacher': 'teacher_dashboard',
+            'hod': 'hod_dashboard',
             'admin': 'admin_dashboard',
         }
         return reverse(role_redirects.get(role, 'dashboard'))

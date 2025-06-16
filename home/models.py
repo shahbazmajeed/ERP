@@ -1,12 +1,15 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.shortcuts import render, get_object_or_404, redirect
+from datetime import datetime
+
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
         ('student', 'Student'),
         ('admin', 'Admin'),
         ('teacher', 'Teacher'),
-        ('head', 'Head'),
+        ('hod', 'Hod'),
         ('director', 'Director'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
@@ -25,8 +28,7 @@ class CustomUser(AbstractUser):
         help_text='Specific permissions for this user.',
     )
 
-from django.shortcuts import render, get_object_or_404, redirect
-from datetime import datetime
+
 class Student(models.Model):
     roll_number = models.CharField(max_length=10, unique=True)
     npf_number = models.CharField(max_length=10, unique=True)
@@ -72,14 +74,12 @@ def take_attendance(request, course, year, section, subject_id, date):
         'date': selected_date
     })
 
-
 class Subject(models.Model):
     subject_name = models.CharField(max_length=100)
     subject_code = models.CharField(max_length=20)
 
     def __str__(self):
         return f"{self.subject_name} ({self.subject_code})"
-
 
 
 class TimeTableEntry(models.Model):
@@ -95,11 +95,6 @@ class TimeTableEntry(models.Model):
     def __str__(self):
         return f"{self.day} - Period {self.period_number} - {self.subject.name} ({self.course} {self.year}-{self.section})"
 
-
-
-
-
-
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
@@ -112,13 +107,6 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.student} - {self.subject} - {self.date} - {self.status}"
 
-
-from django.db import models
-from .models import Student  # ensure correct import if in same app
-
-from django.db import models
-from .models import Student
-
 class FaceEmbedding(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='embeddings')
     image_name = models.CharField(max_length=255,null=True, blank=True)  # Optional, to identify source image
@@ -128,3 +116,37 @@ class FaceEmbedding(models.Model):
     def __str__(self):
         return f"{self.student.roll_number} - {self.image_name}"
 
+# models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Department(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class Employee(models.Model):
+    POSITION_CHOICES = [
+        ('assistant_professor', 'Assistant Professor'),
+        ('teacher', 'Teacher'),
+        ('hod', 'Head of Department'),
+        ('dean', 'Dean'),
+        ('director', 'Director'),
+        
+    ]
+
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    eid = models.CharField(max_length=20, unique=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
+    designation = models.CharField(max_length=100)
+    position_type = models.CharField(max_length=50, choices=POSITION_CHOICES)
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} ({self.get_position_type_display()})"

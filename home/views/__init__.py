@@ -3,4 +3,5 @@ from .dashboard_views import *
 from .student_views import *
 from .timetable_views import *
 from .attendance_views import *
-from .face_recognition_views import *
+from .employee_views import *
+

@@ -17,3 +17,12 @@ class CustomUserCreationForm(UserCreationForm):
 
 class UploadStudentFileForm(forms.Form):
     file = forms.FileField()
+    # forms.py
+
+
+# home/forms.py
+
+from django import forms
+
+class UploadEmployeeFileForm(forms.Form):
+    file = forms.FileField(label="Select Excel File")

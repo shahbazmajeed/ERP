@@ -1,0 +1,3 @@
+python manage.py shell
+from erp.models import CustomUser 
+CustomUser.objects.all().delete()

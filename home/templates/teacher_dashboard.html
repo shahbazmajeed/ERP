@@ -1,0 +1,60 @@
+{% extends "Vlayout.html" %}
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block Vcontent %}
+<div class="container-fluid">
+    <h2>Welcome, {{ teacher.user.get_full_name|default:teacher.user.username }} ({{ teacher.eid }})</h2>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Today's Classes ({{ today }})</h4>
+                </div>
+                <div class="card-body">
+                    {% if timetable_entries %}
+                        <ul class="list-group">
+                            {% for entry in timetable_entries %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Period {{ entry.period_number }}</strong><br>
+                                    {{ entry.subject.subject_name }} ({{ entry.course }} {{ entry.year }}-{{ entry.section }})
+                                </div>
+                                <a href="{% url 'take_attendance' course=entry.course year=entry.year section=entry.section subject_id=entry.subject.id date=today %}" 
+                                   class="btn btn-sm btn-success">
+                                    Take Attendance
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No classes scheduled for today.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4>All Your Subjects</h4>
+                </div>
+                <div class="card-body">
+                    {% if all_entries %}
+                        <div class="list-group">
+                            {% for entry in all_entries %}
+                            <a href="{% url 'take_attendance' course=entry.course year=entry.year section=entry.section subject_id=entry.subject.id date=today %}" 
+                               class="list-group-item list-group-item-action">
+                                {{ entry.subject.subject_name }} ({{ entry.course }} {{ entry.year }}-{{ entry.section }})
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No subjects assigned in timetable.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

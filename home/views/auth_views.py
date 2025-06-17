@@ -9,6 +9,8 @@ def homepage(request):
 
 def register(request):
     if request.method == 'POST':
+        print("❌ Registration form invalid:", form.errors)
+
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)

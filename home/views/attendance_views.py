@@ -22,6 +22,7 @@ def select_attendance_options(request):
 
 
 def attendance_calendar(request, course, year, section, subject_id):
+    import calendar
     today = date.today()
     month = int(request.GET.get('month', today.month))
     year_val = int(request.GET.get('year', today.year))
@@ -38,7 +39,7 @@ def attendance_calendar(request, course, year, section, subject_id):
         date__month=month,
         date__year=year_val
     ).values_list('date', flat=True)
-
+    selected_month = int(request.GET.get('month', datetime.now().month))  # Defaults to current month
     context = {
         'course': course,
         'year': year,
@@ -49,7 +50,8 @@ def attendance_calendar(request, course, year, section, subject_id):
         'selected_month': month,
         'selected_year': year_val,
         'attendance_dates': set(attendance_records),
-        'months': range(1, 13),  # January to December
+        'months': [(i, calendar.month_name[i]) for i in range(1, 13)],
+        'selected_month': selected_month,  # Ensure this is an integer
         'years': range(2023, today.year + 2),  # Example: 2023 to 2026
     }
 
@@ -77,11 +79,6 @@ def select_attendance_options(request):
         'sections': sections,
         'subjects': subjects,
     })
-
-
-
-
-
 
 @csrf_exempt
 def take_attendance(request, course, year, section, subject_id, date):

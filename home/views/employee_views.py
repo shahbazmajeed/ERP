@@ -45,7 +45,8 @@ def upload_employees(request):
                     last_name=last_name,
                     email=email,
                     password=password,
-                    role=role
+                    role = str(role).strip().lower()
+
                 )
 
                 # Create employee profile

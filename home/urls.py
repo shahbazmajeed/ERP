@@ -4,6 +4,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from .views import RoleBasedLoginView
 
+
 urlpatterns = [
     path('', views.homepage, name='homepage'),
     path('register/', views.register, name='register'),
@@ -27,6 +28,8 @@ urlpatterns = [
 
     path('upload_employees/', views.upload_employees, name='upload_employees'),
     path('list_employees/', views.list_employees, name='list_employees'),
+
+    
 ]
 
 

@@ -1,19 +1,40 @@
-<!-- templates/register.html -->
 {% extends "layout.html" %}
 {% block title %}Register | GGI Tools{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
   <div class="row justify-content-center">
     <div class="col-md-6">
       <div class="card shadow p-4">
         <h2 class="text-center mb-4">Register</h2>
+
         <form method="post">
           {% csrf_token %}
-          {{ form.as_p }}
+
+          {# Display non-field errors (like invalid role/email combo) #}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% for field in form %}
+            <div class="mb-3">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}
+                <div class="text-danger small">{{ field.errors }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
           <div class="d-grid mb-3">
             <button type="submit" class="btn btn-success">Register</button>
           </div>
         </form>
+
         <p class="text-center">
           Already have an account? <a href="{% url 'login' %}">Login here</a>
         </p>

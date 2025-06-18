@@ -9,20 +9,11 @@ import numpy as np, cv2, json, base64
 from ..face_utils import train_face_database, face_app  # Ensure this exists and is correct
 
 
-def select_attendance_options(request):
-    if request.method == 'POST':
-        course = request.POST['course']
-        year = request.POST['year']
-        section = request.POST['section']
-        subject_id = request.POST['subject']
-        return redirect('attendance_calendar', course=course, year=int(year), section=section, subject_id=int(subject_id))
-
-    subjects = Subject.objects.all()
-    return render(request, 'attendance_select.html', {'subjects': subjects})
+from datetime import date
+import calendar
 
 
 def attendance_calendar(request, course, year, section, subject_id):
-    import calendar
     today = date.today()
     month = int(request.GET.get('month', today.month))
     year_val = int(request.GET.get('year', today.year))
@@ -31,6 +22,7 @@ def attendance_calendar(request, course, year, section, subject_id):
     cal = calendar.Calendar()
     month_days = cal.monthdatescalendar(year_val, month)
 
+    # ✅ Attendance records already taken
     attendance_records = Attendance.objects.filter(
         student__course=course,
         student__year=year,
@@ -39,7 +31,28 @@ def attendance_calendar(request, course, year, section, subject_id):
         date__month=month,
         date__year=year_val
     ).values_list('date', flat=True)
-    selected_month = int(request.GET.get('month', datetime.now().month))  # Defaults to current month
+
+    # ✅ Get valid weekday names from TimeTable
+    timetable_days_qs = TimeTableEntry.objects.filter(
+        course=course,
+        year=year,
+        section=section,
+        subject=subject
+    ).values_list('day', flat=True).distinct()
+
+    # ✅ Convert weekday names to weekday numbers (0=Mon, ..., 6=Sun)
+    day_name_to_num = {
+        'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
+        'Friday': 4, 'Saturday': 5, 'Sunday': 6
+    }
+    timetable_day_nums = [day_name_to_num[day] for day in timetable_days_qs if day in day_name_to_num]
+
+    # ✅ Allow attendance only on those weekdays
+    allowed_dates = {
+        d for week in month_days for d in week
+        if d.month == month and d.weekday() in timetable_day_nums
+    }
+
     context = {
         'course': course,
         'year': year,
@@ -50,9 +63,9 @@ def attendance_calendar(request, course, year, section, subject_id):
         'selected_month': month,
         'selected_year': year_val,
         'attendance_dates': set(attendance_records),
+        'allowed_dates': allowed_dates,
         'months': [(i, calendar.month_name[i]) for i in range(1, 13)],
-        'selected_month': selected_month,  # Ensure this is an integer
-        'years': range(2023, today.year + 2),  # Example: 2023 to 2026
+        'years': range(2023, today.year + 2),
     }
 
     return render(request, 'attendance_calendar.html', context)
@@ -208,3 +221,39 @@ def train_face_view(request):
         })
     return render(request, 'train_face.html', context)
 
+from django.shortcuts import render
+from home.models import Subject, Attendance, Student
+
+def attendance_analysis_form(request):
+    courses = ['BCA', 'B.Tech', 'MCA']  # Add your offered courses here
+    subjects = Subject.objects.all()
+
+    if request.GET.get('course') and request.GET.get('year') and request.GET.get('section') and request.GET.get('subject_id'):
+        course = request.GET['course']
+        year = request.GET['year']
+        section = request.GET['section']
+        subject_id = request.GET['subject_id']
+
+        attendance_data = Attendance.objects.filter(
+            student__course=course,
+            student__year=year,
+            student__section=section,
+            subject_id=subject_id
+        )
+
+        # Basic aggregation (e.g., total records)
+        total_records = attendance_data.count()
+
+        context = {
+            'courses': courses,
+            'subjects': subjects,
+            'attendance_data': attendance_data,
+            'total_records': total_records,
+        }
+    else:
+        context = {
+            'courses': courses,
+            'subjects': subjects,
+        }
+
+    return render(request, 'attendance_analysis_form.html', context)

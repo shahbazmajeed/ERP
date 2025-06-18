@@ -5,8 +5,6 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import login
 from django.urls import reverse
 from ..forms import CustomUserCreationForm
-from ..models import CustomUser
-
 # Home page
 def homepage(request):
     return render(request, 'index.html')
@@ -101,9 +99,6 @@ def admin_dashboard(request):
 def student_dashboard(request):
     return render(request, 'student_dashboard.html')
 
-@login_required
-def teacher_dashboard(request):
-    return render(request, 'teacher_dashboard.html')
 
 
 @login_required

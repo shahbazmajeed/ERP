@@ -87,6 +87,7 @@ class TimeTableEntry(models.Model):
     period_number = models.IntegerField()
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)  # ✅ LINKED
     teacher_name = models.CharField(max_length=100)
+    eid = models.IntegerField(blank=True, null=True)
     classroom = models.CharField(max_length=100, blank=True)
     course = models.CharField(max_length=50)
     year = models.IntegerField()

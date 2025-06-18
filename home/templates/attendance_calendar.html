@@ -37,20 +37,25 @@
                 {% for day in week %}
                     {% if day.month == selected_month %}
                         <td>
-                            <a href="{% url 'take_attendance' course year section subject_id day|date:'Y-m-d' %}" style="text-decoration: none; font-weight: bold;">
-                                {{ day.day }}
-                            </a>
-                            <br>
-                            {% if day < today %}
-                                {% if day in attendance_dates %}
-                                    <span class="text-success" style="font-size: 0.9em;">✅ Update Attendance</span>
+                            {% if day in allowed_dates %}
+                                <a href="{% url 'take_attendance' course year section subject_id day|date:'Y-m-d' %}" style="text-decoration: none; font-weight: bold;">
+                                    {{ day.day }}
+                                </a>
+                                <br>
+                                {% if day < today %}
+                                    {% if day in attendance_dates %}
+                                        <span class="text-success" style="font-size: 0.9em;">✅ Update Attendance</span>
+                                    {% else %}
+                                        <span class="text-danger" style="font-size: 0.9em;">❌ Attendance Missed</span>
+                                    {% endif %}
+                                {% elif day == today %}
+                                    <span class="text-primary" style="font-size: 0.9em;">📅 Today</span>
                                 {% else %}
-                                    <span class="text-danger" style="font-size: 0.9em;">❌ Attendance Missed</span>
+                                    <span class="text-muted" style="font-size: 0.9em;">Upcoming</span>
                                 {% endif %}
-                            {% elif day == today %}
-                                <span class="text-primary" style="font-size: 0.9em;">📅 Today</span>
                             {% else %}
-                                <span class="text-muted" style="font-size: 0.9em;">Upcoming</span>
+                                <span style="color: #bbb; font-weight: bold;">{{ day.day }}</span><br>
+                                <span class="text-muted" style="font-size: 0.8em;">No Lecture</span>
                             {% endif %}
                         </td>
                     {% else %}

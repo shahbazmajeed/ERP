@@ -4,17 +4,28 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from ..models import Employee, TimeTableEntry
 
+from django.contrib.auth.models import AnonymousUser
+
+
+
 @login_required
 def teacher_dashboard(request):
+    print("Inside teacher_dashboard view")
+    print("User object:", request.user.email)
+    print("Is authenticated?", request.user.is_authenticated)
+
+    if isinstance(request.user, AnonymousUser):
+        print("User is not logged in.")
+    
     today_date = date.today().strftime("%Y-%m-%d")
     weekday = timezone.now().strftime("%A")
 
     try:
         teacher = Employee.objects.get(user=request.user)
-
+        print("test",teacher.eid)
         # Filter timetable entries by EID instead of full name
         timetable_entries = TimeTableEntry.objects.filter(
-            teacher_name=str(teacher.eid),
+            teacher_name__endswith=f"({teacher.eid})",
             day=weekday
         ).select_related('subject')
 

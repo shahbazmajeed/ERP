@@ -4,3 +4,4 @@ from .student_views import *
 from .timetable_views import *
 from .attendance_views import *
 from .employee_views import *
+from .teacher_views import *

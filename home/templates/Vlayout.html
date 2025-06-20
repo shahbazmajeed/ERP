@@ -14,22 +14,22 @@
         </div>
         <ul class="list-group list-group-flush">
           <li class="list-group-item"><a href="/upload_students" class="text-decoration-none">Add Students</a></li>
-          <li class="list-group-item"><a href="/list-students" class="text-decoration-none">View Students</a></li>
+          <li class="list-group-item"><a href="/list_students" class="text-decoration-none">View Students</a></li>
           <li class="list-group-item"><a href="/upload_employees" class="text-decoration-none">Add Employees</a></li>
           <li class="list-group-item"><a href="/list_employees" class="text-decoration-none">View Employees</a></li>
           <li class="list-group-item"><a href="/upload_timetable" class="text-decoration-none">Upload Timetable</a></li>
           <li class="list-group-item"><a href="/list_timetable" class="text-decoration-none">View Timetable</a></li>
-          <li class="list-group-item"><a href="/pdf" class="text-decoration-none">PDF to Excel</a></li>
+          <li class="list-group-item"><a href="/student-timetable" class="text-decoration-none">Track Students Time Table</a></li>
           <li class="list-group-item"><a href="{% url 'filter_attendance' %}" class="text-decoration-none">Attendance</a></li>
+          <li class="list-group-item"><a href="/attendance_analysis" class="text-decoration-none">Attendance Analysis</a></li> <!-- ✅ New link added here -->
           <li class="list-group-item"><a href="#" class="text-decoration-none">Fee Analysis</a></li>
           <li class="list-group-item"><a href="#" class="text-decoration-none">Student Feedback</a></li>
           <li class="list-group-item"><a href="/manage-data" class="text-decoration-none text-danger fw-bold">🛠 Manage Database</a></li>
-          <!-- Inside your sidebar nav or admin dashboard menu -->
           <li class="nav-item">
             <a href="{% url 'train_face' %}" class="btn btn-outline-primary w-100 my-2">
               🧠 Train Face DB
-            </a></li>
-           
+            </a>
+          </li>
         </ul>
       </div>
     </aside>

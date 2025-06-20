@@ -1,0 +1,183 @@
+{% extends "Vlayout.html" %}
+{% load static %}
+{% load custom_filters %}  {# Required for get_item dictionary access #}
+{% block Vcontent %}
+
+<h3 class="mb-4">📊 Attendance Analysis</h3>
+
+<form method="get" action="{% url 'attendance_analysis' %}" class="row g-3">
+    <!-- Branch -->
+    <div class="col-md-3">
+        <label for="branch" class="form-label">Branch</label>
+        <select name="course" id="branch" class="form-select" required>
+            <option value="">-- Select Branch --</option>
+            {% for c in courses %}
+                <option value="{{ c }}" {% if request.GET.course == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Year -->
+    <div class="col-md-2">
+        <label for="year" class="form-label">Year</label>
+        <select name="year" id="year" class="form-select" required>
+            <option value="">-- Select Year --</option>
+            {% for y in years %}
+                <option value="{{ y }}" {% if request.GET.year == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Section -->
+    <div class="col-md-2">
+        <label for="section" class="form-label">Section</label>
+        <select name="section" id="section" class="form-select" required>
+            <option value="">-- Select Section --</option>
+            {% for s in sections %}
+                <option value="{{ s }}" {% if request.GET.section == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- From Date -->
+    <div class="col-md-2">
+        <label for="from_date" class="form-label">From Date</label>
+        <input type="date" name="from_date" value="{{ request.GET.from_date }}" class="form-control" required>
+    </div>
+
+    <!-- To Date -->
+    <div class="col-md-2">
+        <label for="to_date" class="form-label">To Date</label>
+        <input type="date" name="to_date" value="{{ request.GET.to_date }}" class="form-control" required>
+    </div>
+
+    <!-- Subject -->
+    {% if subjects %}
+    <div class="col-md-3">
+        <label for="subject" class="form-label">Subject</label>
+        <select name="subject_id" id="subject" class="form-select" required>
+            <option value="">-- Select Subject --</option>
+            {% for id, name, code in subjects %}
+                <option value="{{ id }}" {% if request.GET.subject_id == id|stringformat:"s" %}selected{% endif %}>
+                    {{ name }} ({{ code }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    <!-- Analyze & Download -->
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Analyze</button>
+    </div>
+    {% if analysis %}
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" name="download" value="1" class="btn btn-success w-100">⬇️ Download Excel</button>
+    </div>
+    {% endif %}
+</form>
+
+<!-- Summary Table -->
+{% if analysis %}
+<hr>
+<h5>Total Lectures Held: {{ total_lectures }}</h5>
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Present</th>
+            <th>Total</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in analysis %}
+            <tr>
+                <td>{{ row.roll }}</td>
+                <td>{{ row.name }}</td>
+                <td>{{ row.present }}</td>
+                <td>{{ row.total }}</td>
+                <td>{{ row.percent }}%</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Matrix Table -->
+{% if attendance_matrix %}
+<hr>
+<h5>📋 Full Attendance Sheet</h5>
+<div class="table-responsive">
+    <table class="table table-bordered table-sm text-center">
+        <thead class="table-light">
+            <tr>
+                <th>Roll No</th>
+                <th>Name</th>
+                {% for d in date_list %}
+                    <th>{{ d }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in attendance_matrix %}
+                <tr>
+                    <td>{{ student.roll }}</td>
+                    <td>{{ student.name }}</td>
+                    {% for d in date_list %}
+                        <td>{{ student.statuses|get_item:d|default:"-" }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- jQuery AJAX: Fixed Flash Out -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    function updateDropdowns() {
+        const course = $('#branch').val();
+        const selectedYear = $('#year').val();
+        const selectedSection = $('#section').val();
+        const selectedSubject = $('#subject').val();
+
+        if (!course) return;
+
+        $.ajax({
+            url: "{% url 'get_filtered_options' %}",
+            data: { course: course, year: selectedYear, section: selectedSection },
+            success: function (data) {
+                // Year dropdown
+                let yearSelect = $('#year');
+                yearSelect.empty().append('<option value="">-- Select Year --</option>');
+                data.years.forEach(function (y) {
+                    yearSelect.append(`<option value="${y}" ${y == selectedYear ? 'selected' : ''}>${y}</option>`);
+                });
+
+                // Section dropdown
+                let sectionSelect = $('#section');
+                sectionSelect.empty().append('<option value="">-- Select Section --</option>');
+                data.sections.forEach(function (s) {
+                    sectionSelect.append(`<option value="${s}" ${s == selectedSection ? 'selected' : ''}>${s}</option>`);
+                });
+
+                // Subject dropdown
+                let subjectSelect = $('#subject');
+                subjectSelect.empty().append('<option value="">-- Select Subject --</option>');
+                data.subjects.forEach(function (subj) {
+                    subjectSelect.append(`<option value="${subj.id}" ${subj.id == selectedSubject ? 'selected' : ''}>${subj.name} (${subj.code})</option>`);
+                });
+            }
+        });
+    }
+
+    $('#branch, #year, #section').change(updateDropdowns);
+    updateDropdowns();
+});
+</script>
+
+{% endblock %}

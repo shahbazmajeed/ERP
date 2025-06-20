@@ -82,19 +82,44 @@ class Subject(models.Model):
         return f"{self.subject_name} ({self.subject_code})"
 
 
+from django.db import models
+from datetime import timedelta
+
 class TimeTableEntry(models.Model):
     day = models.CharField(max_length=20)
     period_number = models.IntegerField()
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)  # ✅ LINKED
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     teacher_name = models.CharField(max_length=100)
     eid = models.IntegerField(blank=True, null=True)
     classroom = models.CharField(max_length=100, blank=True)
     course = models.CharField(max_length=50)
     year = models.IntegerField()
     section = models.CharField(max_length=10)
+    effective_from = models.DateField(null=True, blank=True)
+    effective_to = models.DateField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Step 1: Find most recent previous timetable for the same slot
+        previous_entry = TimeTableEntry.objects.filter(
+            day=self.day,
+            period_number=self.period_number,
+            subject=self.subject,
+            course=self.course,
+            year=self.year,
+            section=self.section,
+            effective_to__isnull=True,
+            effective_from__lt=self.effective_from,
+        ).exclude(pk=self.pk).order_by('-effective_from').first()
+
+        if previous_entry:
+            previous_entry.effective_to = self.effective_from - timedelta(days=1)
+            previous_entry.save()
+
+        # Step 2: Save current/new timetable entry
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.day} - Period {self.period_number} - {self.subject.name} ({self.course} {self.year}-{self.section})"
+        return f"{self.day} P{self.period_number} - {self.subject} ({self.course} {self.year}-{self.section})"
 
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)

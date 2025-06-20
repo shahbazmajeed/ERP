@@ -1,0 +1,56 @@
+{% extends "Vlayout.html" %}
+
+{% block Vcontent %}
+<h3 class="mb-4">Check Student's Today's Timetable</h3>
+
+<form method="post" class="row g-3 mb-4">
+    {% csrf_token %}
+    <div class="col-md-4">
+        <label class="form-label">Enter Roll Number</label>
+        <input type="text" name="roll_number" class="form-control" placeholder="e.g. 23BCS001" required>
+    </div>
+    <div class="col-md-2 align-self-end">
+        <button type="submit" class="btn btn-primary w-100">Check</button>
+    </div>
+</form>
+
+<hr>
+
+{% if student %}
+    <h4 class="mb-3">Timetable for {{ student.first_name }} {{ student.last_name }} ({{ student.roll_number }})</h4>
+    <p><strong>Course:</strong> {{ student.course }} | <strong>Year:</strong> {{ student.year }} | <strong>Section:</strong> {{ student.section }}</p>
+    <p><strong>Date:</strong> {{ today }} ({{ day }})</p>
+
+    {% if timetable_entries %}
+        <div class="table-responsive mt-3">
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Period</th>
+                        <th>Subject</th>
+                        <th>Subject Code</th>
+                        <th>Teacher</th>
+                        <th>Classroom</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in timetable_entries %}
+                    <tr>
+                        <td>{{ entry.period_number }}</td>
+                        <td>{{ entry.subject.subject_name }}</td>
+                        <td>{{ entry.subject.subject_code }}</td>
+                        <td>{{ entry.teacher_name }}</td>
+                        <td>{{ entry.classroom }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted mt-4">No classes scheduled today for this student.</p>
+    {% endif %}
+{% elif request.method == 'POST' %}
+    <p class="text-danger">No student found with that roll number.</p>
+{% endif %}
+
+{% endblock %}

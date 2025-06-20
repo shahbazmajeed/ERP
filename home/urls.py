@@ -3,6 +3,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import RoleBasedLoginView
+from .views.student_today_views import *
 
 
 urlpatterns = [
@@ -28,8 +29,9 @@ urlpatterns = [
 
     path('upload_employees/', views.upload_employees, name='upload_employees'),
     path('list_employees/', views.list_employees, name='list_employees'),
-
-    
+    path('attendance_analysis/', views.attendance_analysis, name='attendance_analysis'),
+    path('ajax/get-options/', views.get_filtered_options, name='get_filtered_options'),
+    path('student-timetable/', student_today_timetable, name='student_today_timetable'),
 ]
 
 

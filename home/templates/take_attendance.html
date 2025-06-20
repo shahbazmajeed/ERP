@@ -21,10 +21,6 @@
     {% else %}
       <button type="button" class="btn btn-secondary btn-sm" disabled>Face Recognition (Only Available for Today)</button>
     {% endif %}
-
-
-
-
   </div>
 
   <!-- Attendance Table -->
@@ -78,7 +74,6 @@
       video.srcObject = stream;
 
       video.onloadedmetadata = () => {
-        // Add capture button dynamically
         const captureBtn = document.createElement("button");
         captureBtn.textContent = "📸 Capture Image";
         captureBtn.className = "btn btn-warning mt-2";
@@ -90,7 +85,6 @@
           canvas.height = video.videoHeight;
           canvas.getContext('2d').drawImage(video, 0, 0);
 
-          // Stop the camera
           stream.getTracks().forEach(track => track.stop());
           video.srcObject = null;
           video.style.display = 'none';
@@ -102,7 +96,6 @@
 
         video.parentNode.insertBefore(captureBtn, video.nextSibling);
       };
-
     } catch (err) {
       alert('❌ Camera access denied or unavailable: ' + err.message);
       console.error(err);
@@ -120,15 +113,28 @@
     })
     .then(response => response.json())
     .then(data => {
-      if (data.recognized_rolls) {
+      if (data.error) {
+        alert("❌ Error: " + data.error);
+        return;
+      }
+
+      // ✅ Mark recognized students as present
+      if (data.recognized_rolls && data.recognized_rolls.length > 0) {
         data.recognized_rolls.forEach(roll => {
           const checkbox = document.getElementById(`student-${roll}`);
           if (checkbox) checkbox.checked = true;
         });
-        alert("✅ Face recognition complete: " + data.recognized_rolls.join(", "));
+        alert("✅ Face recognition complete.\nRecognized: " + data.recognized_rolls.join(", "));
       } else {
-        alert("❌ No faces recognized.");
+        alert("⚠️ No faces recognized.");
       }
+
+      // Optional: Show students with missing embeddings
+      if (data.missing_embeddings && data.missing_embeddings.length > 0) {
+        console.warn("Students missing embeddings:", data.missing_embeddings);
+        alert("ℹ️ Students without face data: " + data.missing_embeddings.join(", "));
+      }
+
     })
     .catch(() => alert("⚠️ Error processing face recognition."));
   }

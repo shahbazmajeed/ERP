@@ -8,53 +8,80 @@ from django.shortcuts import render, redirect
 from ..forms import UploadStudentFileForm
 from ..models import Student
 
+
+
 @login_required
 def upload_students(request):
     if request.user.role != 'admin':
         return render(request, 'error.html', {'message': 'Unauthorized access'})
 
+    form = UploadStudentFileForm()
+    students_added = 0
+
     if request.method == 'POST':
-        form = UploadStudentFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            excel_file = request.FILES['file']
-            wb = openpyxl.load_workbook(excel_file)
-            sheet = wb.active
+        # Upload via Excel
+        if 'upload_excel' in request.POST:
+            form = UploadStudentFileForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES['file']
+                wb = openpyxl.load_workbook(excel_file)
+                sheet = wb.active
 
-            students_added = 0
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                roll_no, npf_number, first_name, last_name, gender, dob, email, phone, address,  course, year, section = row
+                for row in sheet.iter_rows(min_row=2, values_only=True):
+                    roll_no, npf_number, first_name, last_name, gender, dob, email, phone, address, course, year, section = row
 
-                # Skip empty rows
-                if not roll_no:
-                    continue
+                    if not roll_no:
+                        continue
 
-                # Optional: Skip duplicate roll_number
-                if Student.objects.filter(roll_number=roll_no).exists():
-                    continue
+                    if Student.objects.filter(roll_number=roll_no).exists():
+                        continue
 
-                student = Student(
-                    roll_number = roll_no,
-                    npf_number = npf_number,
-                    first_name=first_name,
-                    last_name=last_name,
-                    gender=gender,
-                    date_of_birth=dob,
-                    email=email,
-                    phone_number=phone,
-                    address=address,
-                    course=course,
-                    year=year,
-                    section=section,
+                    Student.objects.create(
+                        roll_number=roll_no,
+                        npf_number=npf_number,
+                        first_name=first_name,
+                        last_name=last_name,
+                        gender=gender,
+                        date_of_birth=dob,
+                        email=email,
+                        phone_number=phone,
+                        address=address,
+                        course=course,
+                        year=year,
+                        section=section,
+                    )
+                    students_added += 1
+
+                messages.success(request, f"Successfully uploaded {students_added} students!")
+                return redirect('list_students')
+
+        # Add single student manually
+        elif 'manual_add' in request.POST:
+            roll_no = request.POST.get('roll_number')
+            if not roll_no:
+                messages.error(request, "Roll number is required.")
+            elif Student.objects.filter(roll_number=roll_no).exists():
+                messages.warning(request, f"Student with Roll Number {roll_no} already exists.")
+            else:
+                Student.objects.create(
+                    roll_number=roll_no,
+                    npf_number=request.POST.get('npf_number'),
+                    first_name=request.POST.get('first_name'),
+                    last_name=request.POST.get('last_name'),
+                    gender=request.POST.get('gender'),
+                    date_of_birth=request.POST.get('date_of_birth') or None,
+                    email=request.POST.get('email'),
+                    phone_number=request.POST.get('phone_number'),
+                    address=request.POST.get('address'),
+                    course=request.POST.get('course'),
+                    year=request.POST.get('year'),
+                    section=request.POST.get('section'),
                 )
-                student.save()
-                students_added += 1
-
-            messages.success(request, f"Successfully uploaded {students_added} students!")
-            return redirect('list_students')
-    else:
-        form = UploadStudentFileForm()
+                messages.success(request, f"Student {roll_no} added successfully!")
+                return redirect('upload_students')
 
     return render(request, 'upload_students.html', {'form': form})
+
 
 
 def list_students(request):

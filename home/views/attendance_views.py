@@ -109,25 +109,21 @@ def select_attendance_options(request):
         'subjects': subjects,
     })
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
-from ..models import Student, Subject, Attendance
+
+import numpy as np, cv2, json, base64
 from datetime import datetime
-import base64, json, cv2
-import numpy as np
+from home.face_utils import face_app
 
 @csrf_exempt
 def take_attendance(request, course, year, section, subject_id, date):
     subject = get_object_or_404(Subject, id=subject_id)
     selected_date = datetime.strptime(date, "%Y-%m-%d").date()
     today = datetime.today().date()
-    is_today = selected_date == today
-    is_future = selected_date > today
+    is_today, is_future = selected_date == today, selected_date > today
 
-    students = Student.objects.filter(course__iexact=course.strip(),year=year,section__iexact=section.strip())
-    print("Found students:", students.count())
-    print("Values:", students.values('roll_number', 'first_name', 'section'))
-
+    students = Student.objects.filter(course=course, year=year, section=section)
     existing_attendance = {
         a.student_id: a.status for a in Attendance.objects.filter(
             subject=subject, date=selected_date, student__in=students
@@ -137,7 +133,6 @@ def take_attendance(request, course, year, section, subject_id, date):
     for student in students:
         student.attendance_status = existing_attendance.get(student.id, "Absent")
 
-    # --- Face Recognition (JSON API) ---
     if request.content_type == "application/json":
         try:
             data = json.loads(request.body)
@@ -150,37 +145,29 @@ def take_attendance(request, course, year, section, subject_id, date):
             img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             faces = face_app.get(img)
 
+            # Normalize detected face embeddings
             detected_embeddings = []
             for face in faces:
-                emb = face.embedding
+                emb = face.embedding.astype(np.float32)
                 norm = np.linalg.norm(emb)
                 if norm != 0:
                     detected_embeddings.append(emb / norm)
 
-            # Prepare known embeddings only from students who have them
+            # Prepare known embeddings
             known_embeddings, student_ids, roll_map = [], [], {}
-            students_with_embeddings = []
-            students_without_embeddings = []
-
             for student in students:
-                emb_list = student.embeddings.all()
-                if emb_list.exists():
-                    students_with_embeddings.append(student)
-                    for emb_obj in emb_list:
-                        emb = np.frombuffer(emb_obj.embedding, dtype=np.float32)
-                        norm = np.linalg.norm(emb)
-                        if norm != 0:
-                            known_embeddings.append(emb / norm)
-                            student_ids.append(student.id)
-                            roll_map[student.id] = student.roll_number
-                else:
-                    students_without_embeddings.append(student.roll_number)
+                for emb_obj in student.embeddings.all():
+                    emb = np.frombuffer(emb_obj.embedding, dtype=np.float32)
+                    norm = np.linalg.norm(emb)
+                    if norm != 0:
+                        known_embeddings.append(emb / norm)
+                        student_ids.append(student.id)
+                        roll_map[student.id] = student.roll_number
 
-            # Match detected faces to known embeddings
             recognized_ids = set()
-            threshold = 0.8
-            if known_embeddings:
-                known_embeddings_array = np.array(known_embeddings)
+            threshold = 1.2  # updated threshold
+            if known_embeddings and detected_embeddings:
+                known_embeddings_array = np.array(known_embeddings, dtype=np.float32)
                 for emb in detected_embeddings:
                     distances = np.linalg.norm(known_embeddings_array - emb, axis=1)
                     min_idx = np.argmin(distances)
@@ -189,19 +176,12 @@ def take_attendance(request, course, year, section, subject_id, date):
 
             return JsonResponse({
                 "recognized_rolls": [roll_map[sid] for sid in recognized_ids],
-                "recognized_count": len(recognized_ids),
-                "missing_embeddings": students_without_embeddings,
-                "total_students": len(students),
-                "unrecognized_rolls": [
-                    student.roll_number for student in students
-                    if student.id not in recognized_ids and student.roll_number not in students_without_embeddings
-                ]
+                "recognized_count": len(recognized_ids)
             })
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-    # --- Manual POST Attendance (form submission) ---
     if request.method == "POST":
         present_ids = set(map(int, request.POST.getlist("present")))
         for student in students:
@@ -227,7 +207,6 @@ def take_attendance(request, course, year, section, subject_id, date):
             "success": True,
         })
 
-    # --- GET: Display the form ---
     return render(request, "take_attendance.html", {
         "students": students,
         "course": course,
@@ -241,7 +220,6 @@ def take_attendance(request, course, year, section, subject_id, date):
         "attendance_exists": bool(existing_attendance),
         "existing_attendance": existing_attendance,
     })
-
 
 
 def get_embedding_for_student(roll_number):

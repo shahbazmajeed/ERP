@@ -1,15 +1,69 @@
-<!-- upload_students.html -->
 {% extends "Vlayout.html" %}
-{% block title %}Upload Students{% endblock %}
+{% block title %}Upload or Add Student{% endblock %}
 
 {% block Vcontent %}
-<h2>Upload Students from Excel</h2>
+<div class="container mt-4">
+  <h2>Upload Students from Excel</h2>
+  <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ upload_form.as_p }}
+      <button type="submit" name="upload_excel" class="btn btn-primary">Upload Excel</button>
+  </form>
 
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Upload</button>
-</form>
+  <hr class="my-5">
 
-<p><a href="{% url 'list_students' %}">View All Students</a></p>
+  <h2>Add Student Manually</h2>
+  <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="manual_add" value="1">
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle text-center">
+          <thead class="table-dark">
+            <tr>
+              <th>Roll No</th>
+              <th>NPF No</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Gender</th>
+              <th>DOB</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>Course</th>
+              <th>Year</th>
+              <th>Section</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" name="roll_number" class="form-control" required></td>
+              <td><input type="text" name="npf_number" class="form-control"></td>
+              <td><input type="text" name="first_name" class="form-control" required></td>
+              <td><input type="text" name="last_name" class="form-control"></td>
+              <td>
+                <select name="gender" class="form-select">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </td>
+              <td><input type="date" name="date_of_birth" class="form-control"></td>
+              <td><input type="email" name="email" class="form-control"></td>
+              <td><input type="text" name="phone_number" class="form-control"></td>
+              <td><input type="text" name="address" class="form-control"></td>
+              <td><input type="text" name="course" class="form-control"></td>
+              <td><input type="text" name="year" class="form-control"></td>
+              <td><input type="text" name="section" class="form-control"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-end mt-2">
+        <button type="submit" class="btn btn-success">Add Student</button>
+      </div>
+  </form>
+
+  <p class="mt-4"><a href="{% url 'list_students' %}">View All Students</a></p>
+</div>
 {% endblock %}
